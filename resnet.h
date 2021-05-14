@@ -7,7 +7,6 @@
 
 #include "tensorrt.h"
 #include "utils.h"
-
 class Resnet : private TensorRT {
 private:
 	common::ClassificationParams mClassifactionParams;
@@ -23,7 +22,7 @@ public:
 	//! \return Float32 file data
 	std::vector<float> preProcess(const std::vector<cv::Mat> &images) const;
 
-	std::vector<float> preProcess_batch(const std::vector<cv::Mat> &images) const;
+	std::vector<float> preProcess_batch(const std::vector<std::vector<float>> &images) const;
 
 	//! Post Process for Yolov3
 	//! \param bufferManager It contains inference result
@@ -47,7 +46,7 @@ public:
 	std::vector<float> predOneImage(const std::vector<cv::Mat> &imagevector);
 
 
-	std::vector<float> batchImage(const std::vector<cv::Mat> &imagevector);
+	std::vector<float> batchImage(const std::vector<std::vector<float>> &imagevector);
 };
 
 #endif //TENSORRT_RESNET_H

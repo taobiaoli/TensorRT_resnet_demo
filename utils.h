@@ -19,7 +19,8 @@
 
 // ==============Pre Process=============>
 std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding=true, float(*pFun)(const unsigned char&)=nullptr, bool HWC=true, int work=1);
-
+std::vector<float> imagePreprocess2nvjpeg(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(const unsigned char&), bool HWC, int worker);
+std::vector<float> imagePreprocess2batch(const std::vector<std::vector<float>> &images, const int &image_h, const int &image_w);
 std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vector<std::string> &directory, const std::vector<std::string> &suffix=std::vector<std::string>{".jpg", ".png"});
 
 

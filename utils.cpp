@@ -80,13 +80,71 @@ std::vector<float> imagePreprocess(const std::vector<cv::Mat> &images, const int
             block_start += block_size;
         }
         idxTransformParall(&file_data, &fileData, block_start, image_h - block_start, image_h, image_w, img_count*image_length, pFun, HWC);
-        for(auto &t : threads){
+        
+for(auto &t : threads){
             t.join();
         }
 		//fileDatavector.push_back(fileData);
 		//fileData.clear();
     }
     return fileData;
+}
+
+std::vector<float> imagePreprocess2nvjpeg(const std::vector<cv::Mat> &images, const int &image_h, const int &image_w, bool is_padding, float(*pFun)(const unsigned char&), bool HWC, int worker) {
+	// image_path ===> cv::Mat ===> resize(padding) ===> CHW/HWC (BRG=>RGB)
+	// 测试发现RGB转BGR的cv::cvtColor 和 HWC 转 CHW非常耗时，故将其合并为一次操作
+	// images 包括对batch的处理，img_count就代表batch的数量，排列时按顺序排列的，查看idxTransformParall中start参数
+	const unsigned long image_length = image_h * image_w * 3;
+	std::vector<float> fileData(images.size()*image_length);
+	for (unsigned long img_count = 0; img_count < images.size(); ++img_count) {
+		cv::Mat image = images[img_count].clone();
+		//cv::Mat prodessed_image(image_h, image_w, CV_8UC3);
+	
+		std::vector<unsigned char> file_data = image.reshape(1, 1);
+		// 并发
+		unsigned long min_threads;
+		if (worker < 0) {
+			const unsigned long min_length = 64;
+			min_threads = (image_h - 1) / min_length + 1;
+		}
+		else if (worker == 0) {
+			min_threads = 1;
+		}
+		else {
+			min_threads = worker;
+		}
+		const unsigned long cpu_max_threads = std::thread::hardware_concurrency();
+		const unsigned long num_threads = std::min(cpu_max_threads != 0 ? cpu_max_threads : 1, min_threads);
+		const unsigned long block_size = image_h / num_threads;
+		std::vector<std::thread> threads(num_threads - 1);
+		unsigned long block_start = 0;
+		for (auto &t : threads) {
+			t = std::thread(idxTransformParall, &file_data, &fileData, block_start, block_size, image_h, image_w, img_count*image_length, pFun, HWC);
+			block_start += block_size;
+		}
+		const auto start_t = std::chrono::high_resolution_clock::now();
+		idxTransformParall(&file_data, &fileData, block_start, image_h - block_start, image_h, image_w, img_count*image_length, pFun, HWC);
+		const auto end_t = std::chrono::high_resolution_clock::now();
+		std::cout << "nchw :" << std::chrono::duration<double, std::milli>(end_t - start_t).count() << "ms" << std::endl;
+		for (auto &t : threads) {
+			t.join();
+		}
+		//fileDatavector.push_back(fileData);
+		//fileData.clear();
+	}
+	return fileData;
+}
+
+std::vector<float> imagePreprocess2batch(const std::vector<std::vector<float>> &images, const int &image_h, const int &image_w) {
+	// 将const std::vector<std::vector<float>> 转成 std::vector<float>
+	const unsigned long image_length = image_h * image_w * 3;
+	std::vector<float> fileData(images.size()*image_length);
+	auto img_data = fileData.data();
+	for (int img_count = 0; img_count < images.size(); ++img_count) {
+		memcpy(img_data, images[img_count].data(), image_length * sizeof(float));
+		img_data += image_length;
+	}
+	return fileData;
 }
 
 std::vector<std::pair<std::string, std::string>> searchDirectory(const std::vector<std::string> &directory, const std::vector<std::string> &suffix){

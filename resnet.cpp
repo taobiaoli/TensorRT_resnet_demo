@@ -11,9 +11,12 @@ std::vector<float> Resnet::preProcess(const std::vector<cv::Mat> &images) const 
 	std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, false,mInputParams.workers);
 	return fileData;
 }
-std::vector<float> Resnet::preProcess_batch(const std::vector<cv::Mat> &images) const {
-
-	std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, false, mInputParams.workers);
+std::vector<float> Resnet::preProcess_batch(const std::vector<std::vector<float>> &images) const {
+	//const auto start_t = std::chrono::high_resolution_clock::now();
+	//std::vector<float> fileData = imagePreprocess(images, mInputParams.ImgH, mInputParams.ImgW, mInputParams.IsPadding, mInputParams.pFunction, false, mInputParams.workers);
+	std::vector<float> fileData = imagePreprocess2batch(images, mInputParams.ImgH, mInputParams.ImgW);
+	//const auto end_t = std::chrono::high_resolution_clock::now();
+	//std::cout<<"preprocess image cost:"<<std::chrono::duration<double, std::milli>(end_t - start_t).count() << "ms" << std::endl;
 	return fileData;
 }
 
@@ -40,7 +43,7 @@ std::vector<float> Resnet::predOneImage(const std::vector<cv::Mat> &imagevector)
     std::vector<float> prob = postProcess(bufferManager);
     return prob;
 }
-std::vector<float> Resnet::batchImage(const std::vector<cv::Mat> &imagevector) {
+std::vector<float> Resnet::batchImage(const std::vector<std::vector<float>> &imagevector) {
 	//assert(mInputParams.BatchSize==1);
 	common::BufferManager bufferManager(mCudaEngine, mInputParams.BatchSize);
 	float elapsedTime = infer(std::vector<std::vector<float>>{preProcess_batch(imagevector)}, bufferManager, nullptr);
@@ -48,5 +51,4 @@ std::vector<float> Resnet::batchImage(const std::vector<cv::Mat> &imagevector) {
 	std::vector<float> prob = postProcess(bufferManager);
 	return prob;
 }
-
 
